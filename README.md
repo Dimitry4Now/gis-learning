@@ -18,9 +18,22 @@ Geodata is not versioned in git (it is large and can always be downloaded again)
 | Data | Source | License |
 |------|--------|---------|
 | OpenStreetMap extract for North Macedonia (`macedonia-latest.osm.pbf`) | [Geofabrik download page](https://download.geofabrik.de/europe/macedonia.html), direct link: <https://download.geofabrik.de/europe/macedonia-latest.osm.pbf> | [ODbL](https://www.openstreetmap.org/copyright), © OpenStreetMap contributors |
-| Base map tiles (used by the web app) | [OpenFreeMap](https://openfreemap.org/) | Free, no API key, built on OpenStreetMap data |
+| Building footprints detected from satellite imagery | [Microsoft Global ML Building Footprints](https://github.com/microsoft/GlobalMLBuildingFootprints), downloaded by `etl/load_microsoft_buildings.py` | [CDLA Permissive 2.0](https://cdla.dev/permissive-2-0/) |
+| Businesses and other places | [Overture Maps places](https://docs.overturemaps.org/guides/places/), downloaded by `etl/load_overture_places.py` | Per upstream dataset, see [Overture attribution](https://docs.overturemaps.org/attribution): CDLA Permissive 2.0 (Meta, Microsoft), Apache 2.0 (Foursquare), CC0 (AllThePlaces) |
+| Local corrections to OSM (e.g. the name and status of the Klepalo crossing) | `etl/corrections/*.csv`, versioned in git, each row with its own source | Project data |
 
-Geofabrik updates the extract daily, so feature counts may differ slightly from the ones below.
+Geofabrik updates the extract daily and Overture releases monthly, so feature counts may differ slightly from the ones below. The source registry (`api/src/main/resources/registry/sources.json`) holds the full provenance, terms and known limitations of each source, and the app shows them per layer.
+
+### Base maps
+
+The web app can switch between these background maps. Each one shows its own attribution and terms in the app.
+
+| Base map | Provider | Terms |
+|----------|----------|-------|
+| Streets, Bright, Light, Dark | [OpenFreeMap](https://openfreemap.org/) vector styles | Free, no key; © OpenMapTiles, data © OpenStreetMap contributors |
+| Satellite (Esri) | Esri World Imagery | [Esri Master License Agreement](https://www.arcgis.com/home/item.html?id=10df2279f9684e4a9f6a7f08febac2a9), intended for ArcGIS apps. Used here for personal learning; check Esri's terms before publishing |
+| Satellite (Sentinel-2, 10 m) | [EOX Sentinel-2 cloudless 2024](https://cloudless.eox.at/) | [CC BY-NC-SA 4.0](https://cloudless.eox.at/documentation/license), non-commercial only |
+| Topographic | [OpenTopoMap](https://opentopomap.org/) | CC-BY-SA; a volunteer service, fine for light use |
 
 ## Setup
 
@@ -50,16 +63,31 @@ The database listens on `localhost:5434` (database, user and password are all `g
 ```bash
 python3 -m venv etl/.venv
 etl/.venv/bin/pip install -r etl/requirements.txt
-etl/.venv/bin/python etl/load_osm.py
+etl/.venv/bin/python etl/load_osm.py                  # ~20 s
+etl/.venv/bin/python etl/load_microsoft_buildings.py  # ~4 min, downloads 60 MB the first time
+etl/.venv/bin/python etl/load_overture_places.py      # ~30 s
 ```
 
-This creates these tables, each with a spatial index:
+Run `load_osm.py` first: the other two clip their data to the country outline it derives. They are independent of each other, but don't run any of them while another is rebuilding tables, as they lock the same tables.
+
+This creates these tables, each with a spatial index. OSM ids are typed: `n123`, `w123` and `r123` are node, way and relation 123 on openstreetmap.org.
 
 | Table | Rows (approx.) | Contents |
 |-------|----------------|----------|
 | `municipalities` | 80 | Municipal boundaries (`admin_level=7`) |
-| `pharmacies` | 287 | Pharmacy points (`amenity=pharmacy`) |
 | `places` | 2,800 | Named cities, towns, villages, suburbs and localities, with English and Albanian names where OSM has them |
+| `pois` | 2,070 | Points of interest by `category`: pharmacy, school, health, supermarket, border_control. Mapped areas are stored as one point each |
+| `roads` | 101,000 | Everything tagged `highway`, with class, number, surface, speed limit, lanes, one-way |
+| `railways` | 1,700 | Everything tagged `railway` |
+| `waterways` | 4,300 | Rivers, streams, canals, drains, ditches |
+| `water_bodies` | 700 | Lakes, reservoirs, ponds (`natural=water`) |
+| `buildings` | 124,500 | OSM buildings, with type, floors and address where mapped |
+| `power_lines` | 354 | Power lines with voltage (75% of them) and operator |
+| `substations` | 46 | Electrical substations, as points |
+| `border_crossings` | 20 | Derived: OSM checkpoints merged per crossing (they are mapped per lane and on both sides), with status, municipality, nearest MK settlement, and a label position outside the border |
+| `border_crossing_corrections` | few | Local corrections from `etl/corrections/border_crossings.csv` |
+| `ms_buildings` | 776,000 | Microsoft footprints inside the border, with area |
+| `overture_places` | 45,000 | Overture places inside the border, with category, confidence, contacts and upstream dataset |
 | `country` | 1 | Country outline, derived as the union of the municipalities (simplified to ~200 m) |
 | `layer_loads` | 1 per table | Provenance: when each table was loaded, its row count, and the source file and its date |
 
@@ -87,7 +115,7 @@ The API runs on <http://localhost:8081>.
 The registries live in `api/src/main/resources/registry/`:
 
 - `sources.json`: who provides the data, how it is accessed, license and attribution, coverage, and known limitations.
-- `layers.json`: what the map can show. Each layer names its source, PostGIS table and optional SQL filter, geometry type, the fields exposed to the client, whether it loads `all` at once or by `viewport`, a minimum zoom, a feature cap, and a renderer (`fill-outline`, `circle` or `place-labels`).
+- `layers.json`: what the map can show. Each layer names its source, PostGIS table and optional SQL filter, geometry type, the fields exposed to the client, whether it loads `all` at once or by `viewport`, a minimum zoom, a feature cap, and a renderer (`fill-outline`, `line`, `circle`, `place-labels` or `border-crossings`). Fields marked `internal` are sent for rendering only, such as a label position, and not shown as attributes.
 
 The registry is trusted server-side configuration: table and field names go into SQL, so they are validated as plain identifiers at startup, and `table` and `where` are never sent to clients. To add a layer, load its table in the ETL, add an entry to `layers.json` (and to `sources.json` if the provider is new), and restart the API.
 
@@ -101,6 +129,8 @@ npm start
 
 Open <http://localhost:4200>. Requests to `/api` are proxied to the API.
 
+- **Base map**: streets, light, dark, two satellite options and topographic, each with its terms (see [Base maps](#base-maps)). Switching keeps all layers and their loaded data.
+- **Layers** (16): cities and towns, border crossings (grey when not in use, labels outside the border), pharmacies, health, schools, supermarkets, Overture businesses, substations, power lines, railways, roads, rivers, lakes, OSM buildings, Microsoft buildings, municipalities. Large layers load only the visible area and only from a minimum zoom (buildings from 15, roads from 13).
 - **Layers panel**: switch each layer on and off, change its opacity and drawing order, and expand it to see its source, license, coverage, data date and limitations. Each layer shows its own state (feature count, loading, none in this area, zoom in, failed, not loaded), and one failing layer does not affect the others.
 - **Feature inspection**: click a feature to see its attributes and where the data comes from.
 - **Search**: finds places in any script (`Скопје`, `skopje`, `Shkup`).
