@@ -10,6 +10,10 @@ data/
 *.qgs~
 *.qgz~
 
+# Python
+.venv/
+__pycache__/
+
 # Node
 node_modules/
 dist/
