@@ -1,0 +1,30 @@
+<div class="search">
+  <input
+    type="search"
+    placeholder="Search places (Скопје, Ohrid, Shtip…)"
+    aria-label="Search places"
+    autocomplete="off"
+    [value]="query()"
+    (input)="onInput($any($event.target).value)"
+    (keydown)="onKeydown($event)"
+  />
+  @if (query()) {
+    <button type="button" class="clear" aria-label="Clear search" (click)="clear()">×</button>
+  }
+</div>
+
+@if (failed()) {
+  <p class="message">Search is unavailable. Is the API running?</p>
+} @else if (results().length) {
+  <ul class="results" role="listbox">
+    @for (place of results(); track place.id; let i = $index) {
+      <li role="option" [class.active]="i === active()" [attr.aria-selected]="i === active()" (mousedown)="choose(place)">
+        <span class="name">{{ place.properties.name }}</span>
+        @if (place.properties.name_en && place.properties.name_en !== place.properties.name) {
+          <span class="alt">{{ place.properties.name_en }}</span>
+        }
+        <span class="type">{{ place.properties.place }}</span>
+      </li>
+    }
+  </ul>
+}

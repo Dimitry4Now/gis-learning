@@ -1,0 +1,81 @@
+:host {
+  display: block;
+  position: relative;
+}
+
+.search {
+  position: relative;
+}
+
+input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 32px 8px 10px;
+  border: 1px solid #cccccc;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+}
+
+input:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: -1px;
+}
+
+/* the browser's own clear button duplicates ours */
+input::-webkit-search-cancel-button {
+  display: none;
+}
+
+.clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  color: #777777;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.results {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.results li {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.results li.active,
+.results li:hover {
+  background: #eff6ff;
+}
+
+.alt {
+  color: #555555;
+  font-size: 13px;
+}
+
+.type {
+  margin-left: auto;
+  color: #777777;
+  font-size: 12px;
+}
+
+.message {
+  margin: 6px 0 0;
+  color: #b91c1c;
+  font-size: 13px;
+}

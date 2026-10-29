@@ -53,7 +53,15 @@ etl/.venv/bin/pip install -r etl/requirements.txt
 etl/.venv/bin/python etl/load_osm.py
 ```
 
-This creates the tables `municipalities` (80 rows) and `pharmacies` (~287 rows), each with a spatial index.
+This creates these tables, each with a spatial index:
+
+| Table | Rows (approx.) | Contents |
+|-------|----------------|----------|
+| `municipalities` | 80 | Municipal boundaries (`admin_level=7`) |
+| `pharmacies` | 287 | Pharmacy points (`amenity=pharmacy`) |
+| `places` | 2,800 | Named cities, towns, villages, suburbs and localities, with English and Albanian names where OSM has them |
+
+`places.search_text` holds every spelling of a name (Cyrillic, Latin with and without digraphs such as `kichevo` and `kicevo`, English, Albanian), lowercased and without diacritics, with a trigram index for search.
 
 ### 4. Run the API
 
@@ -68,6 +76,7 @@ The API runs on <http://localhost:8081>.
 |----------|---------|
 | `GET /api/municipalities` | All municipalities as a GeoJSON FeatureCollection |
 | `GET /api/pharmacies/nearest?lat=41.99&lon=21.43&limit=5` | The nearest pharmacies to a point, with distance in metres |
+| `GET /api/search?q=ohr&limit=8` | Places matching the text, prefix matches and bigger places first; tolerates small typos |
 
 ### 5. Run the web app
 
@@ -77,7 +86,7 @@ npm install
 npm start
 ```
 
-Open <http://localhost:4200>. Requests to `/api` are proxied to the API. The map shows the municipality boundaries; click anywhere to see the five nearest pharmacies.
+Open <http://localhost:4200>. Requests to `/api` are proxied to the API. The map shows the municipality boundaries; click anywhere to see the five nearest pharmacies. The search box finds places in any script (`Скопје`, `skopje`, `Shkup`). The map controls are zoom, compass, back to the whole country, your location, fullscreen, and a scale bar.
 
 The production bundle budget in `angular.json` is raised to 2 MB, because MapLibre alone is about 1 MB.
 
