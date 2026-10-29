@@ -1,0 +1,17 @@
+<div #map class="map"></div>
+
+<aside class="panel">
+  <h1>Nearest pharmacies</h1>
+  @if (pharmacies().length === 0) {
+    <p>Click anywhere on the map.</p>
+  } @else {
+    <ol>
+      @for (p of pharmacies(); track $index) {
+        <li>
+          <span>{{ p.name ?? 'Unnamed pharmacy' }}</span>
+          <span class="distance">{{ p.distance_m }} m</span>
+        </li>
+      }
+    </ol>
+  }
+</aside>
