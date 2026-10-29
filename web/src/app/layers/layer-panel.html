@@ -1,3 +1,15 @@
+<section class="basemap">
+  <label for="basemap">Base map</label>
+  <select id="basemap" [value]="config()?.basemap" [disabled]="!config()" (change)="basemapChange.emit($any($event.target).value)">
+    @for (b of basemaps(); track b.id) {
+      <option [value]="b.id" [selected]="b.id === config()?.basemap">{{ b.name }}</option>
+    }
+  </select>
+  @if (selectedBasemap(); as b) {
+    <p class="terms">{{ b.terms }} <a [href]="b.termsUrl" target="_blank" rel="noopener">Terms</a></p>
+  }
+</section>
+
 <section class="layers">
   <h2>Layers</h2>
 
@@ -101,7 +113,7 @@
                 </dd>
                 <dt>Attributes</dt>
                 <dd>
-                  @for (field of row.def.fields; track field.name; let lastField = $last) {
+                  @for (field of visibleFields(row.def); track field.name; let lastField = $last) {
                     {{ field.label }}{{ lastField ? '' : ', ' }}
                   }
                 </dd>

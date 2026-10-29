@@ -3,6 +3,7 @@ import { DatePipe } from '@angular/common';
 import type { LayerDefinition, LayerLoad, LayerSummary, SourceDefinition } from '../registry/registry';
 import type { LayerSettings, MapConfig } from '../map-config/map-config';
 import type { LayerStatus } from '../map/layer-controller';
+import type { Basemap } from '../map/basemaps';
 
 interface Row {
   id: string;
@@ -29,6 +30,12 @@ export class LayerPanel {
   readonly config = input.required<MapConfig | null>();
   readonly statuses = input.required<Record<string, LayerStatus>>();
   readonly failed = input(false);
+  readonly basemaps = input.required<Basemap[]>();
+  readonly basemapChange = output<string>();
+
+  protected readonly selectedBasemap = computed(() =>
+    this.basemaps().find((b) => b.id === this.config()?.basemap),
+  );
 
   readonly visibleChange = output<{ id: string; visible: boolean }>();
   readonly opacityChange = output<{ id: string; opacity: number }>();
@@ -66,6 +73,10 @@ export class LayerPanel {
       }
       return next;
     });
+  }
+
+  protected visibleFields(def: LayerDefinition) {
+    return def.fields.filter((f) => !f.internal);
   }
 
   protected statusText(row: Row): string {

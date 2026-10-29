@@ -1,5 +1,6 @@
 import { Injectable, signal } from '@angular/core';
 import type { LayerDefinition } from '../registry/registry';
+import { BASEMAPS, DEFAULT_BASEMAP } from '../map/basemaps';
 
 /**
  * The user's map settings: which layers are on, how they look, their order, and where the map is.
@@ -11,6 +12,7 @@ export interface MapConfig {
   order: string[];
   layers: Record<string, LayerSettings>;
   view: MapViewState | null;
+  basemap: string;
 }
 
 export interface LayerSettings {
@@ -31,7 +33,11 @@ export const STORAGE_KEY = 'gis-learning.map-config';
  * defaults and go to the bottom; layers that left the registry are kept, so the user's settings
  * survive if the layer comes back, and the panel can show them as unavailable.
  */
-export function mergeConfig(saved: unknown, registry: LayerDefinition[]): MapConfig {
+export function mergeConfig(
+  saved: unknown,
+  registry: LayerDefinition[],
+  basemapIds: string[] = BASEMAPS.map((b) => b.id),
+): MapConfig {
   const valid = isConfig(saved) ? saved : null;
   const order = [...new Set(valid?.order ?? [])];
   for (const layer of registry) {
@@ -49,7 +55,8 @@ export function mergeConfig(saved: unknown, registry: LayerDefinition[]): MapCon
       : { visible: definition?.defaultVisible ?? false, opacity: 1 };
   }
 
-  return { version: 1, order, layers, view: isView(valid?.view) ? valid.view : null };
+  const basemap = valid && basemapIds.includes(valid.basemap) ? valid.basemap : DEFAULT_BASEMAP;
+  return { version: 1, order, layers, view: isView(valid?.view) ? valid.view : null, basemap };
 }
 
 /** Ids in the user's settings that the registry no longer has. */
@@ -65,6 +72,15 @@ export class MapConfigStore {
   /** The last map position, available before the registry has loaded. */
   savedView(): MapViewState | null {
     return isConfig(this.saved) && isView(this.saved.view) ? this.saved.view : null;
+  }
+
+  /** The last background map, available before the registry has loaded. */
+  savedBasemap(): string | undefined {
+    return isConfig(this.saved) ? this.saved.basemap : undefined;
+  }
+
+  setBasemap(id: string): void {
+    this.update((c) => ({ ...c, basemap: id }));
   }
 
   init(registry: LayerDefinition[]): void {

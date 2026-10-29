@@ -13,7 +13,7 @@ export function featurePopup(
   root.append(el('div', 'feature-popup-layer', def.name));
 
   const table = el('dl');
-  for (const field of def.fields) {
+  for (const field of def.fields.filter((f) => !f.internal)) {
     const value = properties[field.name];
     table.append(el('dt', '', field.label), el('dd', value === null || value === undefined ? 'muted' : '', format(value)));
   }

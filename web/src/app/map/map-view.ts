@@ -33,6 +33,7 @@ import { LayerSummary, RegistryClient, SourceDefinition } from '../registry/regi
 import { LayerController } from './layer-controller';
 import { featurePopup } from './feature-popup';
 import { registryIdOf } from './layer-renderer';
+import { BASEMAPS, GLYPHS, basemap } from './basemaps';
 import { ResetViewControl } from './reset-view-control';
 
 // Bounding box of North Macedonia, [west, south], [east, north]
@@ -65,11 +66,13 @@ export class MapView implements OnDestroy {
 
   private map?: Map;
   private mapLoaded = false;
+  private basemapId?: string;
   private placeMarker?: Marker;
   private popup?: Popup;
   private country?: MultiPolygon;
   private readonly baseLabelFilters = new globalThis.Map<string, FilterSpecification | undefined>();
 
+  protected readonly basemaps = BASEMAPS;
   protected readonly summaries = signal<LayerSummary[]>([]);
   protected readonly sources = signal<SourceDefinition[]>([]);
   protected readonly registryFailed = signal(false);
@@ -81,13 +84,17 @@ export class MapView implements OnDestroy {
     afterNextRender(() => this.initMap());
     this.loadRegistry();
 
-    // Every settings change (toggle, opacity, order) is pushed to the map. untracked: sync reads and
-    // writes layer status, which must not re-trigger this effect, or each finished load starts another.
+    // Every settings change (toggle, opacity, order, base map) is pushed to the map. untracked: sync
+    // reads and writes layer status, which must not re-trigger this effect, or each load starts another.
     effect(() => {
       const config = this.store.config();
       const controller = this.controller();
       if (config && controller) {
         untracked(() => {
+          if (config.basemap !== this.basemapId) {
+            this.switchBasemap(config.basemap, controller);
+            return; // the style reload calls sync when it is done
+          }
           controller.sync(config);
           this.setBaseTownLabelsHidden(!!config.layers[TOWNS_LAYER]?.visible);
         });
@@ -133,9 +140,10 @@ export class MapView implements OnDestroy {
     setWorkerUrl(new URL('maplibre/maplibre-gl-worker.mjs', document.baseURI).href);
 
     const saved = this.store.savedView();
+    this.basemapId = basemap(this.store.savedBasemap()).id;
     const map = new Map({
       container: this.container().nativeElement,
-      style: 'https://tiles.openfreemap.org/styles/liberty',
+      style: basemap(this.basemapId).style,
       // Reopen where the user left off; otherwise fit the country to the screen
       ...(saved ? { center: saved.center, zoom: saved.zoom } : { bounds: MK_BOUNDS, fitBoundsOptions: { padding: MK_PADDING } }),
     });
@@ -164,6 +172,38 @@ export class MapView implements OnDestroy {
     map.on('mousemove', (e) => {
       const hit = this.featuresAt(map, e).length > 0;
       map.getCanvas().style.cursor = hit ? 'pointer' : '';
+    });
+  }
+
+  /**
+   * Swaps the background map. setStyle would drop our sources and layers, so transformStyle copies
+   * them, data included, from the old style into the new one, on top of the new base layers.
+   */
+  private switchBasemap(id: string, controller: LayerController): void {
+    const map = this.map;
+    if (!map) {
+      return;
+    }
+    this.basemapId = id;
+    const own = controller.ownIds();
+    map.setStyle(basemap(id).style, {
+      transformStyle: (previous, next) => ({
+        ...next,
+        glyphs: next.glyphs ?? GLYPHS,
+        sources: {
+          ...next.sources,
+          ...Object.fromEntries(own.sources.filter((s) => previous?.sources[s]).map((s) => [s, previous!.sources[s]])),
+        },
+        layers: [...next.layers, ...(previous?.layers.filter((l) => own.layers.includes(l.id)) ?? [])],
+      }),
+    });
+    map.once('style.load', () => {
+      this.baseLabelFilters.clear(); // the new style has its own label layers
+      const config = this.store.config();
+      if (config) {
+        controller.sync(config);
+        this.setBaseTownLabelsHidden(!!config.layers[TOWNS_LAYER]?.visible);
+      }
     });
   }
 

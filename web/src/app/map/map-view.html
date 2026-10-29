@@ -4,6 +4,8 @@
   <app-place-search (selected)="flyToPlace($event)" (cleared)="clearPlace()" />
 
   <app-layer-panel
+    [basemaps]="basemaps"
+    (basemapChange)="store.setBasemap($event)"
     [summaries]="summaries()"
     [sources]="sources()"
     [config]="store.config()"

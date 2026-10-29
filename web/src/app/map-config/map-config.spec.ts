@@ -11,7 +11,7 @@ function layer(id: string, defaultVisible = true): LayerDefinition {
     geometryType: 'point',
     crs: 'EPSG:4326',
     idField: 'osm_id',
-    fields: [{ name: 'name', label: 'Name', type: 'string' }],
+    fields: [{ name: 'name', label: 'Name', type: 'string', internal: false }],
     loading: 'all',
     simplify: null,
     minZoom: 0,
@@ -52,6 +52,13 @@ describe('mergeConfig', () => {
     const config = mergeConfig(saved, registry);
     expect(config.layers['gone']).toEqual({ visible: true, opacity: 0.3 });
     expect(unavailableIds(config, registry)).toEqual(['gone']);
+  });
+
+  it('keeps a known background map and replaces an unknown one with the default', () => {
+    const base = { version: 1, order: [], layers: {}, view: null };
+    expect(mergeConfig({ ...base, basemap: 'dark' }, [], ['liberty', 'dark']).basemap).toBe('dark');
+    expect(mergeConfig({ ...base, basemap: 'gone' }, [], ['liberty', 'dark']).basemap).toBe('liberty');
+    expect(mergeConfig(base, [], ['liberty', 'dark']).basemap).toBe('liberty');
   });
 
   it('ignores corrupt or foreign data instead of failing', () => {

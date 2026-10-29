@@ -22,6 +22,8 @@ export interface FieldDefinition {
   name: string;
   label: string;
   type: 'string' | 'number' | 'boolean' | 'date';
+  /** sent for rendering only (e.g. a label position), not shown as an attribute */
+  internal: boolean;
 }
 
 /** A dataset the map can show. Mirrors the API's LayerDefinition. */
@@ -40,8 +42,8 @@ export interface LayerDefinition {
   minZoom: number;
   maxFeatures: number;
   defaultVisible: boolean;
-  renderer: 'fill-outline' | 'circle' | 'place-labels';
-  style: { color?: string } | null;
+  renderer: 'fill-outline' | 'line' | 'circle' | 'place-labels' | 'border-crossings';
+  style: { color?: string; width?: number; fillOpacity?: number } | null;
 }
 
 /** When and from what the layer's table was last loaded by the ETL. */

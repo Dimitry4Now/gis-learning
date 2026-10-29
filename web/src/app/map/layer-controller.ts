@@ -58,6 +58,11 @@ export class LayerController {
     return this.defs.find((d) => d.id === id);
   }
 
+  /** Source and style layer ids of every registry layer, to carry them over when the base map changes. */
+  ownIds(): { sources: string[]; layers: string[] } {
+    return { sources: this.defs.map((d) => d.id), layers: this.defs.flatMap(styleLayerIds) };
+  }
+
   /** Style layer ids of all registry layers that are currently visible. */
   visibleStyleLayerIds(): string[] {
     return this.defs.filter((d) => this.config?.layers[d.id]?.visible).flatMap(styleLayerIds);
