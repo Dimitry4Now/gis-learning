@@ -1,0 +1,15 @@
+# Geodata: large, can be downloaded or regenerated
+data/
+*.pbf
+*.gpkg
+*.tif
+*.pmtiles
+*.mbtiles
+
+# QGIS lock files and backups
+*.qgs~
+*.qgz~
+
+# Node
+node_modules/
+dist/
