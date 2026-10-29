@@ -1,6 +1,6 @@
 import { Component, ElementRef, OnDestroy, afterNextRender, inject, signal, viewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { GeoJSONSource, Map, MapMouseEvent, Marker } from 'maplibre-gl';
+import { GeoJSONSource, Map, MapMouseEvent, Marker, setWorkerUrl } from 'maplibre-gl';
 import type { FeatureCollection, Point } from 'geojson';
 
 interface PharmacyProps {
@@ -32,6 +32,10 @@ export class MapView implements OnDestroy {
   }
 
   private initMap(): void {
+    // MapLibre looks for its worker next to its own module, which no longer exists once Angular
+    // bundles it. Without the worker nothing renders. angular.json copies the file to /maplibre.
+    setWorkerUrl(new URL('maplibre/maplibre-gl-worker.mjs', document.baseURI).href);
+
     const map = new Map({
       container: this.container().nativeElement,
       style: 'https://tiles.openfreemap.org/styles/liberty',
