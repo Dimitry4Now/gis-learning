@@ -16,6 +16,45 @@ body {
   background-size: 30px;
 }
 
+/* Feature popups are built outside Angular too (see map/feature-popup.ts) */
+.feature-popup {
+  font-size: 13px;
+}
+
+.feature-popup-layer {
+  margin-bottom: 4px;
+  color: #666666;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.feature-popup dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 8px;
+  margin: 0 0 6px;
+}
+
+.feature-popup dt {
+  color: #666666;
+}
+
+.feature-popup dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.feature-popup dd.muted {
+  color: #999999;
+  font-style: italic;
+}
+
+.feature-popup-source {
+  color: #777777;
+  font-size: 11px;
+}
+
 .maplibregl-ctrl-group .reset-view {
   display: flex;
   align-items: center;

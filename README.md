@@ -61,6 +61,7 @@ This creates these tables, each with a spatial index:
 | `pharmacies` | 287 | Pharmacy points (`amenity=pharmacy`) |
 | `places` | 2,800 | Named cities, towns, villages, suburbs and localities, with English and Albanian names where OSM has them |
 | `country` | 1 | Country outline, derived as the union of the municipalities (simplified to ~200 m) |
+| `layer_loads` | 1 per table | Provenance: when each table was loaded, its row count, and the source file and its date |
 
 `places.search_text` holds every spelling of a name (Cyrillic, Latin with and without digraphs such as `kichevo` and `kicevo`, English, Albanian), lowercased and without diacritics, with a trigram index for search.
 
@@ -75,11 +76,20 @@ The API runs on <http://localhost:8081>.
 
 | Endpoint | Returns |
 |----------|---------|
-| `GET /api/municipalities` | All municipalities as a GeoJSON FeatureCollection |
-| `GET /api/pharmacies/nearest?lat=41.99&lon=21.43&limit=5` | The nearest pharmacies to a point, with distance in metres |
+| `GET /api/sources` | The data-source registry: provider, access method, license, attribution, coverage, known limitations |
+| `GET /api/layers` | The layer registry, each layer with its load record (`null` when its table is not loaded) |
+| `GET /api/layers/{id}/features?bbox=w,s,e,n` | A layer's features as GeoJSON, optionally limited to a bounding box. At most the layer's `maxFeatures`; `truncated: true` says there were more |
 | `GET /api/search?q=ohr&limit=8` | Places matching the text, prefix matches and bigger places first; tolerates small typos |
-| `GET /api/places?type=city&type=town` | All places of the given OSM place types, as GeoJSON points |
 | `GET /api/country` | The country outline as a GeoJSON MultiPolygon |
+
+### Sources and layers
+
+The registries live in `api/src/main/resources/registry/`:
+
+- `sources.json`: who provides the data, how it is accessed, license and attribution, coverage, and known limitations.
+- `layers.json`: what the map can show. Each layer names its source, PostGIS table and optional SQL filter, geometry type, the fields exposed to the client, whether it loads `all` at once or by `viewport`, a minimum zoom, a feature cap, and a renderer (`fill-outline`, `circle` or `place-labels`).
+
+The registry is trusted server-side configuration: table and field names go into SQL, so they are validated as plain identifiers at startup, and `table` and `where` are never sent to clients. To add a layer, load its table in the ETL, add an entry to `layers.json` (and to `sources.json` if the provider is new), and restart the API.
 
 ### 5. Run the web app
 
@@ -89,9 +99,18 @@ npm install
 npm start
 ```
 
-Open <http://localhost:4200>. Requests to `/api` are proxied to the API. The map shows the municipality boundaries; click anywhere to see the five nearest pharmacies. The search box finds places in any script (`Скопје`, `skopje`, `Shkup`). The map controls are zoom, compass, back to the whole country, your location, fullscreen, and a scale bar.
+Open <http://localhost:4200>. Requests to `/api` are proxied to the API.
 
-All 34 cities and towns are labelled from our own `places` data, because the base map drops many small towns at country zoom. Inside the country the base map's own city and town labels are hidden with a `within` filter, so nothing is labelled twice; outside the border they stay.
+- **Layers panel**: switch each layer on and off, change its opacity and drawing order, and expand it to see its source, license, coverage, data date and limitations. Each layer shows its own state (feature count, loading, none in this area, zoom in, failed, not loaded), and one failing layer does not affect the others.
+- **Feature inspection**: click a feature to see its attributes and where the data comes from.
+- **Search**: finds places in any script (`Скопје`, `skopje`, `Shkup`).
+- **Map controls**: zoom, compass, back to the whole country, your location, fullscreen, and a scale bar.
+
+Your layer settings and map position are saved in the browser (`localStorage`), separately from the registry: registry changes never overwrite them, new layers appear with their defaults, and settings of a layer that leaves the registry are kept and shown as "No longer available" until you forget them.
+
+The "Cities and towns" layer labels all 34 cities and towns, because the base map drops many small towns at country zoom. While it is on, the base map's own city and town labels are hidden inside the country with a `within` filter, so nothing is labelled twice; outside the border they stay.
+
+Tests: `./gradlew test` in `api/` (the context test needs the database running) and `npm test` in `web/`.
 
 The production bundle budget in `angular.json` is raised to 2 MB, because MapLibre alone is about 1 MB.
 

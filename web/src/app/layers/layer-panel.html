@@ -1,0 +1,119 @@
+<section class="layers">
+  <h2>Layers</h2>
+
+  @if (failed()) {
+    <p class="message error">
+      The layer list could not be loaded.
+      <button type="button" class="link" (click)="retry.emit()">Try again</button>
+    </p>
+  } @else if (rows().length === 0) {
+    <p class="message">Loading layers…</p>
+  }
+
+  <ul>
+    @for (row of rows(); track row.id) {
+      <li [class.gone]="!row.def">
+        <div class="row">
+          <input
+            type="checkbox"
+            [id]="'layer-' + row.id"
+            [checked]="row.settings.visible"
+            [disabled]="!row.def || !row.load"
+            (change)="visibleChange.emit({ id: row.id, visible: $any($event.target).checked })"
+          />
+          <label [for]="'layer-' + row.id">{{ row.def?.name ?? row.id }}</label>
+          <span class="status" [attr.data-state]="row.def ? row.status?.state : 'gone'" [title]="row.status?.message ?? ''">
+            {{ statusText(row) }}
+          </span>
+          <button
+            type="button"
+            class="expand"
+            [class.open]="expanded().has(row.id)"
+            [attr.aria-expanded]="expanded().has(row.id)"
+            [attr.aria-label]="'Details for ' + (row.def?.name ?? row.id)"
+            (click)="toggleExpanded(row.id)"
+          >
+            ▾
+          </button>
+        </div>
+
+        @if (expanded().has(row.id)) {
+          <div class="details">
+            @if (!row.def) {
+              <p>This layer is in your saved settings but is no longer offered. Your settings are kept in case it returns.</p>
+              <button type="button" class="link" (click)="forget.emit(row.id)">Forget these settings</button>
+            } @else {
+              @if (row.status?.message) {
+                <p class="note" [attr.data-state]="row.status?.state">{{ row.status?.message }}</p>
+              }
+
+              <div class="controls">
+                <label class="opacity">
+                  Opacity
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    [value]="row.settings.opacity"
+                    (input)="opacityChange.emit({ id: row.id, opacity: +$any($event.target).value })"
+                  />
+                </label>
+                <button type="button" [disabled]="row.first" aria-label="Draw above" (click)="move.emit({ id: row.id, delta: -1 })">↑</button>
+                <button type="button" [disabled]="row.last" aria-label="Draw below" (click)="move.emit({ id: row.id, delta: 1 })">↓</button>
+              </div>
+
+              <dl>
+                <dt>Category</dt>
+                <dd>{{ row.def.category }} · {{ row.def.geometryType }}s</dd>
+                <dt>Source</dt>
+                <dd>
+                  @if (row.source?.url) {
+                    <a [href]="row.source!.url" target="_blank" rel="noopener">{{ row.source!.name }}</a>
+                  } @else {
+                    {{ row.source?.name ?? row.def.source }}
+                  }
+                  <span class="kind">local database</span>
+                </dd>
+                @if (row.source) {
+                  <dt>License</dt>
+                  <dd>
+                    @if (row.source.licenseUrl) {
+                      <a [href]="row.source.licenseUrl" target="_blank" rel="noopener">{{ row.source.license }}</a>
+                    } @else {
+                      {{ row.source.license }}
+                    }
+                    · {{ row.source.attribution }}
+                  </dd>
+                  @if (row.source.coverage) {
+                    <dt>Coverage</dt>
+                    <dd>{{ row.source.coverage }}</dd>
+                  }
+                }
+                <dt>Data from</dt>
+                <dd>
+                  @if (row.load) {
+                    {{ row.load.sourceFile }}, {{ row.load.sourceModified | date: 'mediumDate' }}
+                    <span class="kind">loaded {{ row.load.loadedAt | date: 'short' }}</span>
+                  } @else {
+                    not loaded yet
+                  }
+                </dd>
+                <dt>Attributes</dt>
+                <dd>
+                  @for (field of row.def.fields; track field.name; let lastField = $last) {
+                    {{ field.label }}{{ lastField ? '' : ', ' }}
+                  }
+                </dd>
+              </dl>
+
+              @if (row.source?.knownLimitations) {
+                <p class="limitations">{{ row.source!.knownLimitations }}</p>
+              }
+            }
+          </div>
+        }
+      </li>
+    }
+  </ul>
+</section>

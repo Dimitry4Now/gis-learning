@@ -1,26 +1,39 @@
-import { Component, ElementRef, OnDestroy, afterNextRender, inject, signal, viewChild } from '@angular/core';
+import {
+  Component,
+  ElementRef,
+  OnDestroy,
+  afterNextRender,
+  computed,
+  effect,
+  inject,
+  signal,
+  untracked,
+  viewChild,
+} from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { forkJoin } from 'rxjs';
 import {
   FilterSpecification,
   FullscreenControl,
-  GeoJSONSource,
   GeolocateControl,
   LngLatBoundsLike,
   Map,
   MapMouseEvent,
   Marker,
   NavigationControl,
+  Popup,
   ScaleControl,
   setWorkerUrl,
 } from 'maplibre-gl';
-import type { FeatureCollection, MultiPolygon, Point } from 'geojson';
+import type { MultiPolygon } from 'geojson';
 import { Place, PlaceSearch } from '../search/place-search';
+import { LayerPanel } from '../layers/layer-panel';
+import { MapConfigStore } from '../map-config/map-config';
+import { LayerSummary, RegistryClient, SourceDefinition } from '../registry/registry';
+import { LayerController } from './layer-controller';
+import { featurePopup } from './feature-popup';
+import { registryIdOf } from './layer-renderer';
 import { ResetViewControl } from './reset-view-control';
-
-interface PharmacyProps {
-  name: string | null;
-  distance_m: number;
-}
 
 // Bounding box of North Macedonia, [west, south], [east, north]
 const MK_BOUNDS: LngLatBoundsLike = [
@@ -35,30 +48,68 @@ const DEFAULT_PLACE_ZOOM = 15;
 
 // City and town label layers in the OpenFreeMap "liberty" style
 const BASE_TOWN_LABEL_LAYERS = ['label_city', 'label_city_capital', 'label_town'];
+// Our layer that replaces them inside the country
+const TOWNS_LAYER = 'osm-towns';
 
 @Component({
   selector: 'app-map-view',
-  imports: [PlaceSearch],
+  imports: [PlaceSearch, LayerPanel],
   templateUrl: './map-view.html',
   styleUrl: './map-view.css',
 })
 export class MapView implements OnDestroy {
   private readonly http = inject(HttpClient);
+  private readonly registry = inject(RegistryClient);
+  protected readonly store = inject(MapConfigStore);
   private readonly container = viewChild.required<ElementRef<HTMLDivElement>>('map');
 
   private map?: Map;
-  private clickMarker?: Marker;
+  private mapLoaded = false;
   private placeMarker?: Marker;
+  private popup?: Popup;
+  private country?: MultiPolygon;
+  private readonly baseLabelFilters = new globalThis.Map<string, FilterSpecification | undefined>();
 
-  protected readonly pharmacies = signal<PharmacyProps[]>([]);
+  protected readonly summaries = signal<LayerSummary[]>([]);
+  protected readonly sources = signal<SourceDefinition[]>([]);
+  protected readonly registryFailed = signal(false);
+  private readonly controller = signal<LayerController | undefined>(undefined);
+  protected readonly statuses = computed(() => this.controller()?.status() ?? {});
 
   constructor() {
     // MapLibre needs a real DOM element with a size, so create it after the first render
     afterNextRender(() => this.initMap());
+    this.loadRegistry();
+
+    // Every settings change (toggle, opacity, order) is pushed to the map. untracked: sync reads and
+    // writes layer status, which must not re-trigger this effect, or each finished load starts another.
+    effect(() => {
+      const config = this.store.config();
+      const controller = this.controller();
+      if (config && controller) {
+        untracked(() => {
+          controller.sync(config);
+          this.setBaseTownLabelsHidden(!!config.layers[TOWNS_LAYER]?.visible);
+        });
+      }
+    });
   }
 
   ngOnDestroy(): void {
     this.map?.remove();
+  }
+
+  protected loadRegistry(): void {
+    this.registryFailed.set(false);
+    forkJoin([this.registry.sources(), this.registry.layers()]).subscribe({
+      next: ([sources, summaries]) => {
+        this.sources.set(sources);
+        this.summaries.set(summaries);
+        this.store.init(summaries.map((s) => s.layer));
+        this.startLayers();
+      },
+      error: () => this.registryFailed.set(true),
+    });
   }
 
   protected flyToPlace(place: Place): void {
@@ -81,12 +132,12 @@ export class MapView implements OnDestroy {
     // bundles it. Without the worker nothing renders. angular.json copies the file to /maplibre.
     setWorkerUrl(new URL('maplibre/maplibre-gl-worker.mjs', document.baseURI).href);
 
+    const saved = this.store.savedView();
     const map = new Map({
       container: this.container().nativeElement,
       style: 'https://tiles.openfreemap.org/styles/liberty',
-      // Fit the country to the screen instead of a fixed zoom, so phones and wide screens both work
-      bounds: MK_BOUNDS,
-      fitBoundsOptions: { padding: MK_PADDING },
+      // Reopen where the user left off; otherwise fit the country to the screen
+      ...(saved ? { center: saved.center, zoom: saved.zoom } : { bounds: MK_BOUNDS, fitBoundsOptions: { padding: MK_PADDING } }),
     });
     this.map = map;
 
@@ -97,119 +148,73 @@ export class MapView implements OnDestroy {
     map.addControl(new ScaleControl({ unit: 'metric' }), 'bottom-left');
 
     map.on('load', () => {
-      this.addMunicipalities(map);
-      this.addPharmacyLayer(map);
-      this.addTownLabels(map);
-      this.http.get<MultiPolygon>('/api/country').subscribe((country) => this.hideBaseTownLabels(map, country));
+      this.mapLoaded = true;
+      this.startLayers();
+      this.http.get<MultiPolygon>('/api/country').subscribe((country) => {
+        this.country = country;
+        this.setBaseTownLabelsHidden(!!this.store.config()?.layers[TOWNS_LAYER]?.visible);
+      });
     });
-    map.on('click', (e) => this.findNearestPharmacies(map, e));
-  }
-
-  private addMunicipalities(map: Map): void {
-    // A URL source: MapLibre fetches the GeoJSON itself
-    map.addSource('municipalities', { type: 'geojson', data: '/api/municipalities' });
-    map.addLayer({
-      id: 'municipalities-fill',
-      type: 'fill',
-      source: 'municipalities',
-      paint: { 'fill-color': '#3b82f6', 'fill-opacity': 0.08 },
+    map.on('moveend', () => {
+      this.controller()?.refreshViewport();
+      const { lng, lat } = map.getCenter();
+      this.store.setView({ center: [lng, lat], zoom: map.getZoom() });
     });
-    map.addLayer({
-      id: 'municipalities-line',
-      type: 'line',
-      source: 'municipalities',
-      paint: { 'line-color': '#1d4ed8', 'line-width': 1 },
+    map.on('click', (e) => this.inspect(map, e));
+    map.on('mousemove', (e) => {
+      const hit = this.featuresAt(map, e).length > 0;
+      map.getCanvas().style.cursor = hit ? 'pointer' : '';
     });
   }
 
-  private addPharmacyLayer(map: Map): void {
-    map.addSource('pharmacies', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
-    map.addLayer({
-      id: 'pharmacies',
-      type: 'circle',
-      source: 'pharmacies',
-      paint: {
-        'circle-radius': 7,
-        'circle-color': '#16a34a',
-        'circle-stroke-color': '#ffffff',
-        'circle-stroke-width': 2,
-      },
-    });
+  /** Adds registry layers once both the map and the registry are ready, whichever comes last. */
+  private startLayers(): void {
+    if (!this.map || !this.mapLoaded || !this.summaries().length || this.controller()) {
+      return;
+    }
+    this.controller.set(new LayerController(this.map, this.http, this.summaries(), this.sources()));
   }
 
-  /** Labels for every city and town from our own data; the base map drops many small towns at country zoom. */
-  private addTownLabels(map: Map): void {
-    map.addSource('towns', { type: 'geojson', data: '/api/places?type=city&type=town' });
-    map.addLayer({
-      id: 'towns-dot',
-      type: 'circle',
-      source: 'towns',
-      maxzoom: 11,
-      paint: {
-        'circle-radius': ['match', ['get', 'place'], 'city', 4, 3],
-        'circle-color': '#ffffff',
-        'circle-stroke-color': '#374151',
-        'circle-stroke-width': 1.5,
-      },
-    });
-    map.addLayer({
-      id: 'towns-label',
-      type: 'symbol',
-      source: 'towns',
-      layout: {
-        // Latin name on top, Cyrillic below, the same convention as the base map
-        'text-field': [
-          'format',
-          ['coalesce', ['get', 'name_en'], ['get', 'name']], {},
-          '\n', {},
-          ['get', 'name'], { 'font-scale': 0.85 },
-        ],
-        // Fonts must exist on the glyph server named in the base style
-        'text-font': ['match', ['get', 'place'], 'city', ['literal', ['Noto Sans Bold']], ['literal', ['Noto Sans Regular']]],
-        'text-size': ['match', ['get', 'place'], 'city', 13, 12],
-        'text-variable-anchor': ['top', 'bottom', 'left', 'right'],
-        // Offset from the dot while it is shown, centred on the town once the dot is gone
-        'text-radial-offset': ['step', ['zoom'], 0.6, 11, 0],
-        'text-justify': 'auto',
-        // Cities win label collisions over towns
-        'symbol-sort-key': ['get', 'place_rank'],
-      },
-      paint: {
-        'text-color': '#1f2937',
-        'text-halo-color': '#ffffff',
-        'text-halo-width': 1.5,
-      },
-    });
+  private featuresAt(map: Map, e: MapMouseEvent) {
+    const layers = this.controller()?.visibleStyleLayerIds() ?? [];
+    return layers.length ? map.queryRenderedFeatures(e.point, { layers }) : [];
+  }
+
+  /** Shows the attributes of the top-most feature under the click. */
+  private inspect(map: Map, e: MapMouseEvent): void {
+    const feature = this.featuresAt(map, e)[0];
+    const def = feature && this.controller()?.definition(registryIdOf(feature.layer.id));
+    this.popup?.remove();
+    if (!feature || !def) {
+      return;
+    }
+    const source = this.sources().find((s) => s.id === def.source);
+    this.popup = new Popup({ maxWidth: '280px' })
+      .setLngLat(e.lngLat)
+      .setDOMContent(featurePopup(def, source, feature.properties))
+      .addTo(map);
   }
 
   /**
-   * Our town labels replace the base map's inside North Macedonia, so hide the base ones there.
-   * Outside the border (Sofia, Thessaloniki, ...) the base labels stay.
+   * Our town labels replace the base map's inside North Macedonia, so the base ones are hidden there
+   * while our layer is on. Outside the border (Sofia, Thessaloniki, ...) the base labels always stay.
    */
-  private hideBaseTownLabels(map: Map, country: MultiPolygon): void {
-    const outsideCountry = ['!', ['within', country]] as FilterSpecification;
+  private setBaseTownLabelsHidden(hidden: boolean): void {
+    const map = this.map;
+    if (!map || !this.mapLoaded || !this.country) {
+      return;
+    }
+    const outsideCountry = ['!', ['within', this.country]];
     for (const id of BASE_TOWN_LABEL_LAYERS) {
       if (!map.getLayer(id)) {
         continue; // the base style changed; nothing to hide
       }
-      const existing = map.getFilter(id);
-      map.setFilter(id, (existing ? ['all', existing, outsideCountry] : outsideCountry) as FilterSpecification);
+      if (!this.baseLabelFilters.has(id)) {
+        this.baseLabelFilters.set(id, map.getFilter(id) ?? undefined);
+      }
+      const original = this.baseLabelFilters.get(id);
+      const filter = hidden ? (original ? ['all', original, outsideCountry] : outsideCountry) : original;
+      map.setFilter(id, (filter ?? null) as FilterSpecification | null);
     }
-  }
-
-  private findNearestPharmacies(map: Map, e: MapMouseEvent): void {
-    const { lng, lat } = e.lngLat;
-
-    this.clickMarker?.remove();
-    this.clickMarker = new Marker({ color: '#dc2626' }).setLngLat([lng, lat]).addTo(map);
-
-    this.http
-      .get<FeatureCollection<Point, PharmacyProps>>('/api/pharmacies/nearest', {
-        params: { lat, lon: lng, limit: 5 },
-      })
-      .subscribe((result) => {
-        map.getSource<GeoJSONSource>('pharmacies')?.setData(result);
-        this.pharmacies.set(result.features.map((f) => f.properties));
-      });
   }
 }

@@ -3,19 +3,16 @@
 <aside class="panel">
   <app-place-search (selected)="flyToPlace($event)" (cleared)="clearPlace()" />
 
-  <section class="nearest">
-    <h1>Nearest pharmacies</h1>
-    @if (pharmacies().length === 0) {
-      <p>Click anywhere on the map.</p>
-    } @else {
-      <ol>
-        @for (p of pharmacies(); track $index) {
-          <li>
-            <span>{{ p.name ?? 'Unnamed pharmacy' }}</span>
-            <span class="distance">{{ p.distance_m }} m</span>
-          </li>
-        }
-      </ol>
-    }
-  </section>
+  <app-layer-panel
+    [summaries]="summaries()"
+    [sources]="sources()"
+    [config]="store.config()"
+    [statuses]="statuses()"
+    [failed]="registryFailed()"
+    (visibleChange)="store.setVisible($event.id, $event.visible)"
+    (opacityChange)="store.setOpacity($event.id, $event.opacity)"
+    (move)="store.move($event.id, $event.delta)"
+    (forget)="store.forget($event)"
+    (retry)="loadRegistry()"
+  />
 </aside>
