@@ -1,0 +1,16 @@
+[
+  {
+    "id": "osm-geofabrik",
+    "name": "OpenStreetMap",
+    "provider": "OpenStreetMap contributors, extract by Geofabrik",
+    "type": "file",
+    "access": "Downloaded .osm.pbf, converted to GeoPackage and loaded into PostGIS by etl/load_osm.py",
+    "url": "https://download.geofabrik.de/europe/macedonia.html",
+    "license": "ODbL 1.0",
+    "licenseUrl": "https://www.openstreetmap.org/copyright",
+    "attribution": "© OpenStreetMap contributors",
+    "coverage": "North Macedonia",
+    "updateFrequency": "Geofabrik publishes daily; refreshed here by re-running the ETL",
+    "knownLimitations": "Volunteer-mapped, so completeness varies a lot between places. Central Berovo, for example, has 171 mapped buildings where satellite-derived datasets find about 3,400. A missing feature does not mean it does not exist."
+  }
+]

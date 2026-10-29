@@ -135,8 +135,30 @@ def load(engine, table: str, layer: str, where: str, columns: list[str], transfo
         for statement in INDEXES.get(table, []):
             conn.execute(text(statement))
         conn.execute(text(f"ANALYZE {table}"))
+        record_load(conn, table, len(gdf))
 
     print(f"{table}: {len(gdf)} rows")
+
+
+def record_load(conn, table: str, row_count: int) -> None:
+    """Provenance for the API: when each table was loaded, from which file, and how old that file was."""
+    conn.execute(text("""
+        CREATE TABLE IF NOT EXISTS layer_loads (
+          table_name text PRIMARY KEY,
+          row_count integer NOT NULL,
+          loaded_at timestamptz NOT NULL,
+          source_file text NOT NULL,
+          source_modified timestamptz NOT NULL
+        )
+    """))
+    conn.execute(
+        text("""
+            INSERT INTO layer_loads VALUES (:table, :rows, now(), :file, to_timestamp(:modified))
+            ON CONFLICT (table_name) DO UPDATE SET row_count = excluded.row_count, loaded_at = excluded.loaded_at,
+              source_file = excluded.source_file, source_modified = excluded.source_modified
+        """),
+        {"table": table, "rows": row_count, "file": GPKG.name, "modified": GPKG.stat().st_mtime},
+    )
 
 
 def main() -> None:

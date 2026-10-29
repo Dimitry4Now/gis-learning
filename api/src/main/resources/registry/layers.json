@@ -1,0 +1,63 @@
+[
+  {
+    "id": "osm-towns",
+    "name": "Cities and towns",
+    "category": "Places",
+    "source": "osm-geofabrik",
+    "table": "places",
+    "where": "place IN ('city', 'town')",
+    "geometryType": "point",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      { "name": "name", "label": "Name", "type": "string" },
+      { "name": "name_en", "label": "English name", "type": "string" },
+      { "name": "name_sq", "label": "Albanian name", "type": "string" },
+      { "name": "place", "label": "Place type", "type": "string" }
+    ],
+    "loading": "all",
+    "minZoom": 0,
+    "maxFeatures": 500,
+    "defaultVisible": true,
+    "renderer": "place-labels"
+  },
+  {
+    "id": "osm-pharmacies",
+    "name": "Pharmacies",
+    "category": "Points of interest",
+    "source": "osm-geofabrik",
+    "table": "pharmacies",
+    "geometryType": "point",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      { "name": "name", "label": "Name", "type": "string" }
+    ],
+    "loading": "viewport",
+    "minZoom": 8,
+    "maxFeatures": 2000,
+    "defaultVisible": false,
+    "renderer": "circle",
+    "style": { "color": "#16a34a" }
+  },
+  {
+    "id": "osm-municipalities",
+    "name": "Municipalities",
+    "category": "Administrative boundaries",
+    "source": "osm-geofabrik",
+    "table": "municipalities",
+    "geometryType": "polygon",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      { "name": "name", "label": "Name", "type": "string" }
+    ],
+    "loading": "all",
+    "simplify": 0.0005,
+    "minZoom": 0,
+    "maxFeatures": 500,
+    "defaultVisible": true,
+    "renderer": "fill-outline",
+    "style": { "color": "#1d4ed8" }
+  }
+]
