@@ -28,7 +28,8 @@ public class LayerRegistry {
     private static final Set<String> GEOMETRY_TYPES = Set.of("point", "line", "polygon");
     private static final Set<String> FIELD_TYPES = Set.of("string", "number", "boolean", "date");
     private static final Set<String> LOADING = Set.of("all", "viewport");
-    private static final Set<String> RENDERERS = Set.of("fill-outline", "circle", "place-labels");
+    private static final Set<String> RENDERERS =
+            Set.of("fill-outline", "line", "circle", "place-labels", "border-crossings");
 
     private final List<SourceDefinition> sources;
     private final List<LayerDefinition> layers;

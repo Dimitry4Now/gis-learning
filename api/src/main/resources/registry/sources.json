@@ -11,6 +11,34 @@
     "attribution": "© OpenStreetMap contributors",
     "coverage": "North Macedonia",
     "updateFrequency": "Geofabrik publishes daily; refreshed here by re-running the ETL",
-    "knownLimitations": "Volunteer-mapped, so completeness varies a lot between places. Central Berovo, for example, has 171 mapped buildings where satellite-derived datasets find about 3,400. A missing feature does not mean it does not exist."
+    "knownLimitations": "Volunteer-mapped, so completeness varies a lot between places. Central Berovo, for example, has 171 mapped buildings where satellite-derived datasets find about 3,400. A missing feature does not mean it does not exist. Some values are overridden by local corrections in etl/corrections, which say so where they apply."
+  },
+  {
+    "id": "microsoft-buildings",
+    "name": "Microsoft Global ML Building Footprints",
+    "provider": "Microsoft",
+    "type": "file",
+    "access": "Downloaded GeoJSONL tiles, imported with ogr2ogr and clipped to the border by etl/load_microsoft_buildings.py",
+    "url": "https://github.com/microsoft/GlobalMLBuildingFootprints",
+    "license": "CDLA Permissive 2.0",
+    "licenseUrl": "https://cdla.dev/permissive-2-0/",
+    "attribution": "Building footprints © Microsoft",
+    "coverage": "North Macedonia (15 tiles, listed by Microsoft as FYROMakedonija)",
+    "updateFrequency": "Irregular; the MK tiles were last updated 2026-02-23",
+    "knownLimitations": "Detected from satellite imagery by machine learning: outlines only, with no height, use or address. Quality varies and is weaker in dense urban areas; some outlines are false detections or several buildings merged into one. Some catalogues list this data as ODbL from an earlier release; Microsoft's repository states CDLA Permissive 2.0."
+  },
+  {
+    "id": "overture-places",
+    "name": "Overture Maps places",
+    "provider": "Overture Maps Foundation, from Meta, Microsoft, Foursquare, AllThePlaces and others",
+    "type": "file",
+    "access": "GeoParquet downloaded with the overturemaps CLI and clipped to the border by etl/load_overture_places.py",
+    "url": "https://docs.overturemaps.org/guides/places/",
+    "license": "Per upstream dataset: CDLA Permissive 2.0 (Meta, Microsoft and others), Apache 2.0 (Foursquare), CC0 1.0 (AllThePlaces)",
+    "licenseUrl": "https://docs.overturemaps.org/attribution",
+    "attribution": "Overture Maps Foundation; data from Meta, Microsoft, Foursquare (© 2024 Foursquare Labs, Inc.), AllThePlaces",
+    "coverage": "North Macedonia",
+    "updateFrequency": "Monthly Overture releases; the loaded release is shown under 'Data from'",
+    "knownLimitations": "Mostly from Meta business pages: listings can be outdated, duplicated or approximately placed, and closed businesses are rarely marked. Each place has a confidence score from 0 to 1; below about 0.5 expect noise."
   }
 ]

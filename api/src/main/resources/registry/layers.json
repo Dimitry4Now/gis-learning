@@ -10,10 +10,26 @@
     "crs": "EPSG:4326",
     "idField": "osm_id",
     "fields": [
-      { "name": "name", "label": "Name", "type": "string" },
-      { "name": "name_en", "label": "English name", "type": "string" },
-      { "name": "name_sq", "label": "Albanian name", "type": "string" },
-      { "name": "place", "label": "Place type", "type": "string" }
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "name_en",
+        "label": "English name",
+        "type": "string"
+      },
+      {
+        "name": "name_sq",
+        "label": "Albanian name",
+        "type": "string"
+      },
+      {
+        "name": "place",
+        "label": "Place type",
+        "type": "string"
+      }
     ],
     "loading": "all",
     "minZoom": 0,
@@ -22,23 +38,617 @@
     "renderer": "place-labels"
   },
   {
-    "id": "osm-pharmacies",
-    "name": "Pharmacies",
-    "category": "Points of interest",
+    "id": "osm-border-crossings",
+    "name": "Border crossings",
+    "category": "Transport",
     "source": "osm-geofabrik",
-    "table": "pharmacies",
+    "table": "border_crossings",
     "geometryType": "point",
     "crs": "EPSG:4326",
     "idField": "osm_id",
     "fields": [
-      { "name": "name", "label": "Name", "type": "string" }
+      {
+        "name": "label",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "status",
+        "label": "Status",
+        "type": "string"
+      },
+      {
+        "name": "note",
+        "label": "Note",
+        "type": "string"
+      },
+      {
+        "name": "municipality",
+        "label": "Municipality",
+        "type": "string"
+      },
+      {
+        "name": "near",
+        "label": "Nearest MK settlement",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "label": "Name in OpenStreetMap",
+        "type": "string"
+      },
+      {
+        "name": "name_source",
+        "label": "Name from",
+        "type": "string"
+      },
+      {
+        "name": "checkpoints",
+        "label": "Mapped checkpoints",
+        "type": "number"
+      },
+      {
+        "name": "label_anchor",
+        "label": "Label position",
+        "type": "string",
+        "internal": true
+      }
+    ],
+    "loading": "all",
+    "minZoom": 0,
+    "maxFeatures": 200,
+    "defaultVisible": true,
+    "renderer": "border-crossings",
+    "style": {
+      "color": "#be123c"
+    }
+  },
+  {
+    "id": "osm-pharmacies",
+    "name": "Pharmacies",
+    "category": "Points of interest",
+    "source": "osm-geofabrik",
+    "table": "pois",
+    "where": "category = 'pharmacy'",
+    "geometryType": "point",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "opening_hours",
+        "label": "Opening hours",
+        "type": "string"
+      },
+      {
+        "name": "operator",
+        "label": "Operator",
+        "type": "string"
+      }
     ],
     "loading": "viewport",
     "minZoom": 8,
     "maxFeatures": 2000,
     "defaultVisible": false,
     "renderer": "circle",
-    "style": { "color": "#16a34a" }
+    "style": {
+      "color": "#16a34a"
+    }
+  },
+  {
+    "id": "osm-health",
+    "name": "Hospitals, clinics, doctors",
+    "category": "Points of interest",
+    "source": "osm-geofabrik",
+    "table": "pois",
+    "where": "category = 'health'",
+    "geometryType": "point",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "kind",
+        "label": "Type",
+        "type": "string"
+      },
+      {
+        "name": "opening_hours",
+        "label": "Opening hours",
+        "type": "string"
+      },
+      {
+        "name": "operator",
+        "label": "Operator",
+        "type": "string"
+      }
+    ],
+    "loading": "all",
+    "minZoom": 0,
+    "maxFeatures": 2000,
+    "defaultVisible": false,
+    "renderer": "circle",
+    "style": {
+      "color": "#dc2626"
+    }
+  },
+  {
+    "id": "osm-schools",
+    "name": "Schools, kindergartens, universities",
+    "category": "Points of interest",
+    "source": "osm-geofabrik",
+    "table": "pois",
+    "where": "category = 'school'",
+    "geometryType": "point",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "kind",
+        "label": "Type",
+        "type": "string"
+      },
+      {
+        "name": "operator",
+        "label": "Operator",
+        "type": "string"
+      }
+    ],
+    "loading": "all",
+    "minZoom": 0,
+    "maxFeatures": 2000,
+    "defaultVisible": false,
+    "renderer": "circle",
+    "style": {
+      "color": "#7c3aed"
+    }
+  },
+  {
+    "id": "osm-supermarkets",
+    "name": "Supermarkets",
+    "category": "Points of interest",
+    "source": "osm-geofabrik",
+    "table": "pois",
+    "where": "category = 'supermarket'",
+    "geometryType": "point",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "opening_hours",
+        "label": "Opening hours",
+        "type": "string"
+      },
+      {
+        "name": "operator",
+        "label": "Operator",
+        "type": "string"
+      }
+    ],
+    "loading": "all",
+    "minZoom": 0,
+    "maxFeatures": 2000,
+    "defaultVisible": false,
+    "renderer": "circle",
+    "style": {
+      "color": "#ea580c"
+    }
+  },
+  {
+    "id": "overture-places",
+    "name": "Businesses and places (Overture)",
+    "category": "Points of interest",
+    "source": "overture-places",
+    "table": "overture_places",
+    "geometryType": "point",
+    "crs": "EPSG:4326",
+    "idField": "id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "category",
+        "label": "Category",
+        "type": "string"
+      },
+      {
+        "name": "confidence",
+        "label": "Confidence (0–1)",
+        "type": "number"
+      },
+      {
+        "name": "address",
+        "label": "Address",
+        "type": "string"
+      },
+      {
+        "name": "phone",
+        "label": "Phone",
+        "type": "string"
+      },
+      {
+        "name": "website",
+        "label": "Website",
+        "type": "string"
+      },
+      {
+        "name": "operating_status",
+        "label": "Operating status",
+        "type": "string"
+      },
+      {
+        "name": "dataset",
+        "label": "From dataset",
+        "type": "string"
+      }
+    ],
+    "loading": "viewport",
+    "minZoom": 13,
+    "maxFeatures": 3000,
+    "defaultVisible": false,
+    "renderer": "circle",
+    "style": {
+      "color": "#0891b2"
+    }
+  },
+  {
+    "id": "osm-substations",
+    "name": "Substations",
+    "category": "Electricity",
+    "source": "osm-geofabrik",
+    "table": "substations",
+    "geometryType": "point",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "substation",
+        "label": "Type",
+        "type": "string"
+      },
+      {
+        "name": "voltage",
+        "label": "Voltage (V)",
+        "type": "string"
+      },
+      {
+        "name": "operator",
+        "label": "Operator",
+        "type": "string"
+      }
+    ],
+    "loading": "all",
+    "minZoom": 0,
+    "maxFeatures": 500,
+    "defaultVisible": false,
+    "renderer": "circle",
+    "style": {
+      "color": "#a16207"
+    }
+  },
+  {
+    "id": "osm-power-lines",
+    "name": "Power lines",
+    "category": "Electricity",
+    "source": "osm-geofabrik",
+    "table": "power_lines",
+    "geometryType": "line",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "power",
+        "label": "Type",
+        "type": "string"
+      },
+      {
+        "name": "voltage",
+        "label": "Voltage (V)",
+        "type": "string"
+      },
+      {
+        "name": "operator",
+        "label": "Operator",
+        "type": "string"
+      },
+      {
+        "name": "cables",
+        "label": "Cables",
+        "type": "string"
+      }
+    ],
+    "loading": "all",
+    "minZoom": 0,
+    "maxFeatures": 1000,
+    "defaultVisible": false,
+    "renderer": "line",
+    "style": {
+      "color": "#ca8a04",
+      "width": 1.5
+    }
+  },
+  {
+    "id": "osm-railways",
+    "name": "Railways",
+    "category": "Transport",
+    "source": "osm-geofabrik",
+    "table": "railways",
+    "geometryType": "line",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "railway",
+        "label": "Type",
+        "type": "string"
+      },
+      {
+        "name": "usage",
+        "label": "Usage",
+        "type": "string"
+      },
+      {
+        "name": "electrified",
+        "label": "Electrified",
+        "type": "string"
+      },
+      {
+        "name": "service",
+        "label": "Service",
+        "type": "string"
+      }
+    ],
+    "loading": "all",
+    "minZoom": 0,
+    "maxFeatures": 3000,
+    "defaultVisible": false,
+    "renderer": "line",
+    "style": {
+      "color": "#4b5563",
+      "width": 1.5
+    }
+  },
+  {
+    "id": "osm-roads",
+    "name": "Roads, streets and paths",
+    "category": "Transport",
+    "source": "osm-geofabrik",
+    "table": "roads",
+    "geometryType": "line",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "highway",
+        "label": "Class",
+        "type": "string"
+      },
+      {
+        "name": "ref",
+        "label": "Road number",
+        "type": "string"
+      },
+      {
+        "name": "surface",
+        "label": "Surface",
+        "type": "string"
+      },
+      {
+        "name": "maxspeed",
+        "label": "Speed limit",
+        "type": "string"
+      },
+      {
+        "name": "lanes",
+        "label": "Lanes",
+        "type": "string"
+      },
+      {
+        "name": "oneway",
+        "label": "One way",
+        "type": "string"
+      }
+    ],
+    "loading": "viewport",
+    "minZoom": 13,
+    "maxFeatures": 6000,
+    "defaultVisible": false,
+    "renderer": "line",
+    "style": {
+      "color": "#c2410c",
+      "width": 1.5
+    }
+  },
+  {
+    "id": "osm-waterways",
+    "name": "Rivers and streams",
+    "category": "Water",
+    "source": "osm-geofabrik",
+    "table": "waterways",
+    "geometryType": "line",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "waterway",
+        "label": "Type",
+        "type": "string"
+      },
+      {
+        "name": "intermittent",
+        "label": "Dries up seasonally",
+        "type": "string"
+      }
+    ],
+    "loading": "viewport",
+    "minZoom": 9,
+    "maxFeatures": 5000,
+    "defaultVisible": false,
+    "renderer": "line",
+    "style": {
+      "color": "#0284c7",
+      "width": 1.5
+    }
+  },
+  {
+    "id": "osm-water",
+    "name": "Lakes and reservoirs",
+    "category": "Water",
+    "source": "osm-geofabrik",
+    "table": "water_bodies",
+    "geometryType": "polygon",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "water",
+        "label": "Type",
+        "type": "string"
+      },
+      {
+        "name": "intermittent",
+        "label": "Dries up seasonally",
+        "type": "string"
+      }
+    ],
+    "loading": "viewport",
+    "simplify": 0.0001,
+    "minZoom": 8,
+    "maxFeatures": 2000,
+    "defaultVisible": false,
+    "renderer": "fill-outline",
+    "style": {
+      "color": "#0284c7",
+      "fillOpacity": 0.3
+    }
+  },
+  {
+    "id": "osm-buildings",
+    "name": "Buildings (OpenStreetMap)",
+    "category": "Buildings",
+    "source": "osm-geofabrik",
+    "table": "buildings",
+    "geometryType": "polygon",
+    "crs": "EPSG:4326",
+    "idField": "osm_id",
+    "fields": [
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      },
+      {
+        "name": "building",
+        "label": "Building type",
+        "type": "string"
+      },
+      {
+        "name": "building_levels",
+        "label": "Floors",
+        "type": "string"
+      },
+      {
+        "name": "addr_street",
+        "label": "Street",
+        "type": "string"
+      },
+      {
+        "name": "addr_housenumber",
+        "label": "House number",
+        "type": "string"
+      },
+      {
+        "name": "height",
+        "label": "Height (m)",
+        "type": "string"
+      }
+    ],
+    "loading": "viewport",
+    "minZoom": 15,
+    "maxFeatures": 5000,
+    "defaultVisible": false,
+    "renderer": "fill-outline",
+    "style": {
+      "color": "#9a3412",
+      "fillOpacity": 0.35
+    }
+  },
+  {
+    "id": "ms-buildings",
+    "name": "Buildings (Microsoft, from satellite)",
+    "category": "Buildings",
+    "source": "microsoft-buildings",
+    "table": "ms_buildings",
+    "geometryType": "polygon",
+    "crs": "EPSG:4326",
+    "idField": "id",
+    "fields": [
+      {
+        "name": "area_m2",
+        "label": "Footprint area (m²)",
+        "type": "number"
+      }
+    ],
+    "loading": "viewport",
+    "minZoom": 15,
+    "maxFeatures": 6000,
+    "defaultVisible": false,
+    "renderer": "fill-outline",
+    "style": {
+      "color": "#6d28d9",
+      "fillOpacity": 0.3
+    }
   },
   {
     "id": "osm-municipalities",
@@ -50,7 +660,11 @@
     "crs": "EPSG:4326",
     "idField": "osm_id",
     "fields": [
-      { "name": "name", "label": "Name", "type": "string" }
+      {
+        "name": "name",
+        "label": "Name",
+        "type": "string"
+      }
     ],
     "loading": "all",
     "simplify": 0.0005,
@@ -58,6 +672,8 @@
     "maxFeatures": 500,
     "defaultVisible": true,
     "renderer": "fill-outline",
-    "style": { "color": "#1d4ed8" }
+    "style": {
+      "color": "#1d4ed8"
+    }
   }
 ]

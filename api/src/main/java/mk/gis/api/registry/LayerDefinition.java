@@ -10,7 +10,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
  * read from the registry file but never sent to clients.
  *
  * @param loading "all" fetches the whole layer once; "viewport" fetches the visible area on every move
- * @param renderer how the web map draws it: fill-outline, circle or place-labels
+ * @param renderer how the web map draws it: fill-outline, line, circle or place-labels
+ * @param style renderer options: color, plus width (line) and fillOpacity (fill-outline)
  */
 public record LayerDefinition(
         String id,

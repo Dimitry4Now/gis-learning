@@ -51,6 +51,6 @@ class LayerRegistryTest {
 
     private static LayerDefinition layer(String id, String table, String field) {
         return new LayerDefinition(id, id, "Test", "osm", table, null, "point", "EPSG:4326", "osm_id",
-                List.of(new FieldDefinition(field, "Field", "string")), "all", null, 0, 100, true, "circle", null);
+                List.of(new FieldDefinition(field, "Field", "string", false)), "all", null, 0, 100, true, "circle", null);
     }
 }
