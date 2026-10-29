@@ -1,7 +1,7 @@
 <div #map class="map"></div>
 
 <aside class="panel">
-  <app-place-search (selected)="flyToPlace($event)" />
+  <app-place-search (selected)="flyToPlace($event)" (cleared)="clearPlace()" />
 
   <section class="nearest">
     <h1>Nearest pharmacies</h1>

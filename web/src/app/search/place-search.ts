@@ -22,6 +22,7 @@ export class PlaceSearch {
   private readonly queries = new Subject<string>();
 
   readonly selected = output<Place>();
+  readonly cleared = output<void>();
 
   protected readonly query = signal('');
   protected readonly results = signal<Place[]>([]);
@@ -58,6 +59,9 @@ export class PlaceSearch {
     this.query.set(value);
     this.failed.set(false);
     this.queries.next(value);
+    if (!value) {
+      this.cleared.emit();
+    }
   }
 
   protected onKeydown(event: KeyboardEvent): void {
@@ -85,5 +89,6 @@ export class PlaceSearch {
     this.query.set('');
     this.results.set([]);
     this.queries.next('');
+    this.cleared.emit();
   }
 }

@@ -67,6 +67,11 @@ export class MapView implements OnDestroy {
     this.map.flyTo({ center: [lng, lat], zoom: PLACE_ZOOM[place.properties.place] ?? DEFAULT_PLACE_ZOOM });
   }
 
+  protected clearPlace(): void {
+    this.placeMarker?.remove();
+    this.placeMarker = undefined;
+  }
+
   private initMap(): void {
     // MapLibre looks for its worker next to its own module, which no longer exists once Angular
     // bundles it. Without the worker nothing renders. angular.json copies the file to /maplibre.
