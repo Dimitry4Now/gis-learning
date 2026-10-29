@@ -100,6 +100,26 @@ INDEXES = {
 }
 
 
+# Tables computed from loaded tables, rebuilt after every load
+DERIVED = {
+    # Country outline as the union of all municipalities, simplified to ~200 m. The web map uses it
+    # to hide the base map's own MK town labels; too slow (~1 s) to compute per request.
+    "country": """
+        CREATE TABLE country AS
+        SELECT ST_Multi(ST_SimplifyPreserveTopology(ST_Union(geom), 0.002))::geometry(MultiPolygon, 4326) AS geom
+        FROM municipalities
+    """,
+}
+
+
+def build_derived(engine) -> None:
+    with engine.begin() as conn:
+        for table, query in DERIVED.items():
+            conn.execute(text(f"DROP TABLE IF EXISTS {table}"))
+            conn.execute(text(query))
+            print(f"{table}: derived")
+
+
 def load(engine, table: str, layer: str, where: str, columns: list[str], transform) -> None:
     gdf = gpd.read_file(GPKG, layer=layer, where=where, columns=columns)
     if gdf.empty:
@@ -126,6 +146,7 @@ def main() -> None:
     engine = create_engine(DB_URL)
     for table, (layer, where, columns, transform) in EXTRACTS.items():
         load(engine, table, layer, where, columns, transform)
+    build_derived(engine)
 
 
 if __name__ == "__main__":

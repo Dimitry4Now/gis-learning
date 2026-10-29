@@ -1,17 +1,21 @@
 package mk.gis.api;
 
 import java.text.Normalizer;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 /**
- * Place search over the OSM places table. The ETL stores every spelling of a name (Cyrillic, Latin
+ * Place search and place listings over the OSM places table. The ETL stores every spelling of a name (Cyrillic, Latin
  * with and without digraphs, English, Albanian) in search_text, so one trigram index covers all of them.
  */
 @RestController
@@ -19,6 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class PlaceSearchController {
 
     private static final String EMPTY = "{\"type\":\"FeatureCollection\",\"features\":[]}";
+
+    // Same set as PLACE_RANK in etl/load_osm.py
+    private static final Set<String> PLACE_TYPES = Set.of(
+            "city", "town", "village", "suburb", "quarter", "neighbourhood",
+            "hamlet", "locality", "isolated_dwelling", "square");
 
     private final JdbcClient jdbc;
 
@@ -60,6 +69,30 @@ public class PlaceSearchController {
                 .param("wordPrefix", "% " + escapeLike(query) + "%")
                 .param("contains", "%" + escapeLike(query) + "%")
                 .param("limit", Math.clamp(limit, 1, 20))
+                .query(String.class)
+                .single();
+    }
+
+    @GetMapping("/places")
+    public String places(@RequestParam(name = "type") List<String> types) {
+        if (types.isEmpty() || !PLACE_TYPES.containsAll(types)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "type must be one of " + PLACE_TYPES);
+        }
+        return jdbc.sql("""
+                SELECT json_build_object(
+                  'type', 'FeatureCollection',
+                  'features', coalesce(json_agg(json_build_object(
+                    'type', 'Feature',
+                    'id', osm_id,
+                    'geometry', ST_AsGeoJSON(geom, 6)::json,
+                    'properties', json_build_object(
+                      'name', name, 'name_en', name_en, 'place', place, 'place_rank', place_rank)
+                  ) ORDER BY place_rank, name), '[]'::json)
+                )::text
+                FROM places
+                WHERE place IN (:types)
+                """)
+                .param("types", types)
                 .query(String.class)
                 .single();
     }

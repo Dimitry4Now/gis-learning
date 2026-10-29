@@ -42,6 +42,13 @@ public class GeoController {
                 .single();
     }
 
+    @GetMapping("/country")
+    public String country() {
+        return jdbc.sql("SELECT ST_AsGeoJSON(geom, 5) FROM country")
+                .query(String.class)
+                .single();
+    }
+
     @GetMapping("/pharmacies/nearest")
     public String nearestPharmacies(
             @RequestParam double lat,

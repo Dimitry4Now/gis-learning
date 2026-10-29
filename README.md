@@ -60,6 +60,7 @@ This creates these tables, each with a spatial index:
 | `municipalities` | 80 | Municipal boundaries (`admin_level=7`) |
 | `pharmacies` | 287 | Pharmacy points (`amenity=pharmacy`) |
 | `places` | 2,800 | Named cities, towns, villages, suburbs and localities, with English and Albanian names where OSM has them |
+| `country` | 1 | Country outline, derived as the union of the municipalities (simplified to ~200 m) |
 
 `places.search_text` holds every spelling of a name (Cyrillic, Latin with and without digraphs such as `kichevo` and `kicevo`, English, Albanian), lowercased and without diacritics, with a trigram index for search.
 
@@ -77,6 +78,8 @@ The API runs on <http://localhost:8081>.
 | `GET /api/municipalities` | All municipalities as a GeoJSON FeatureCollection |
 | `GET /api/pharmacies/nearest?lat=41.99&lon=21.43&limit=5` | The nearest pharmacies to a point, with distance in metres |
 | `GET /api/search?q=ohr&limit=8` | Places matching the text, prefix matches and bigger places first; tolerates small typos |
+| `GET /api/places?type=city&type=town` | All places of the given OSM place types, as GeoJSON points |
+| `GET /api/country` | The country outline as a GeoJSON MultiPolygon |
 
 ### 5. Run the web app
 
@@ -87,6 +90,8 @@ npm start
 ```
 
 Open <http://localhost:4200>. Requests to `/api` are proxied to the API. The map shows the municipality boundaries; click anywhere to see the five nearest pharmacies. The search box finds places in any script (`Скопје`, `skopje`, `Shkup`). The map controls are zoom, compass, back to the whole country, your location, fullscreen, and a scale bar.
+
+All 34 cities and towns are labelled from our own `places` data, because the base map drops many small towns at country zoom. Inside the country the base map's own city and town labels are hidden with a `within` filter, so nothing is labelled twice; outside the border they stay.
 
 The production bundle budget in `angular.json` is raised to 2 MB, because MapLibre alone is about 1 MB.
 
